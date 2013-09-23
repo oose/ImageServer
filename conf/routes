@@ -1,0 +1,20 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+# Home page
+
+GET    /conf           controllers.Application.conf
+
+GET    /ping           controllers.Application.ping
+
+GET    /image          controllers.Application.imageId
+
+GET    /image/:id      controllers.Application.image(id: String)
+
+
+# POST tags as Json body
+POST   /image/:id      controllers.Application.saveMetaData(id: String)
+
+# Map static resources from the /public folder to the /assets URL path
+GET    /assets/*file   controllers.Assets.at(path="/public", file)
