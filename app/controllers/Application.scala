@@ -1,18 +1,28 @@
 package controllers
 
 import java.io.File
-import scala.concurrent.Await
-import scala.concurrent.duration._
-import akka.actor.Props
-import akka.pattern._
-import backend._
+
+import scala.annotation.implicitNotFound
+import scala.concurrent.Future
+import scala.concurrent.duration.DurationInt
+
+import akka.actor._
+import akka.pattern.ask
+import backend.DirectoryActor
+import backend.DirectoryContent
+import backend.Evaluation
+import backend.EvaluationAccepted
+import backend.EvaluationRejected
+import backend.EvaluationStatus
+import backend.RequestId
+import backend.StatusRequest
+import backend.StatusResponse
 import play.api._
 import play.api.Play.current
-import play.api.libs.concurrent._
-import play.api.libs.json.Json._
+import play.api.libs.concurrent.Akka
+import play.api.libs.concurrent.Execution.Implicits.defaultContext
+import play.api.libs.json.Json.toJson
 import play.api.mvc._
-import play.api.libs.concurrent.Execution.Implicits._
-import scala.concurrent.Future
 
 object Application extends Controller {
 
@@ -39,12 +49,28 @@ object Application extends Controller {
   /**
    *  get the configuration
    */
-  def conf = Action {
+  def conf = Action.async {
     request =>
-      val images = Await.result((directoryActor ? DirectoryContent).mapTo[List[String]], 5.seconds)
-      imageDir match {
-        case Some(dir) => Ok(toJson(Map("image.dir" -> images)))
-        case None => ServiceUnavailable(toJson(Map("error" -> "image.dir not set in application.conf")))
+      val directoryListing = (directoryActor ? DirectoryContent)
+      val statusReponse = (directoryActor ? StatusRequest)
+
+      val response = for (
+        d <- directoryListing.mapTo[List[String]];
+        s <- statusReponse.mapTo[StatusResponse]
+      ) yield (d, s)
+
+      response.map {
+        case (directoryListing, StatusResponse(total, inEvaluation)) =>
+          imageDir match {
+            case Some(dir) =>
+              Ok(toJson(Map("image.dir" -> toJson(directoryListing),
+                "totalImages" -> toJson(total),
+                "inEvaluation" -> toJson(inEvaluation))))
+            case None =>
+              ServiceUnavailable(toJson(Map("error" -> "image.dir not set in application.conf")))
+          }
+        case _ =>
+          BadRequest
       }
   }
 

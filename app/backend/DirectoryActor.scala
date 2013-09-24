@@ -1,12 +1,12 @@
 package backend
 
-import akka.actor.Actor
-import akka.actor.ActorLogging
 import java.io.File
+
+import scala.collection.JavaConversions.collectionAsScalaIterable
+
 import org.apache.commons.io.FileUtils
-import scala.collection.JavaConversions._
-import akka.actor.ActorRef
-import akka.actor.Props
+
+import akka.actor._
 
 class DirectoryActor(imageDir: String) extends Actor with ActorLogging {
 
@@ -23,7 +23,7 @@ class DirectoryActor(imageDir: String) extends Actor with ActorLogging {
     files.map(_.getName()).toList
   }
 
-  /** 
+  /**
    *  @return the first image which remains to be evaluated if any.
    */
   def imageId(): Option[String] = {
@@ -51,6 +51,9 @@ class DirectoryActor(imageDir: String) extends Actor with ActorLogging {
 
     case DirectoryContent =>
       sender ! images
+
+    case StatusRequest =>
+      sender ! StatusResponse(images.size, imageActors.size)
 
     case Expired(Some(id)) =>
       log.info(s"An image expired, removing from queue : $id")

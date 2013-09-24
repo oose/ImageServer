@@ -1,9 +1,8 @@
 package backend
 
-import akka.actor.ActorLogging
-import akka.actor.Actor
 import scala.concurrent.duration._
-import akka.actor.ActorRef
+
+import akka.actor._
 
 class ImageActor(id: String) extends Actor with ActorLogging {
 
