@@ -55,7 +55,7 @@ class DirectoryActor(imageDir: String) extends Actor with ActorLogging {
     case StatusRequest =>
       sender ! StatusResponse(images.size, imageActors.size)
 
-    case Expired(Some(id)) =>
+    case Expired(id) =>
       log.info(s"An image expired, removing from queue : $id")
       context.stop(sender)
       imageActors = imageActors - id

@@ -8,7 +8,7 @@ class ImageActor(id: String) extends Actor with ActorLogging {
 
   implicit val ec = context.dispatcher
 
-  val ticker = context.system.scheduler.scheduleOnce(3.minutes, self, Expired)
+  val ticker = context.system.scheduler.scheduleOnce(3.minutes, self, TimeOut)
 
   override def postStop = {
     log.info(s"ImageActor $id stopped.")
@@ -21,11 +21,9 @@ class ImageActor(id: String) extends Actor with ActorLogging {
       log.info(s"received tags $tags for actor $self")
       sender ! EvaluationAccepted
 
-    case Expired =>
-      log.info("Image Expired")
-      context.parent ! Expired(Some(id))
-
-    case _ => log.error("unknown message received")
+    case TimeOut =>
+      log.info("Image Expired, received time out")
+      context.parent ! Expired(id)
   }
 
 }
