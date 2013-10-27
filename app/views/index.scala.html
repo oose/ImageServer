@@ -1,0 +1,36 @@
+@()
+<!DOCTYPE html lang="en">
+
+<html ng-app>
+<head>
+    <title>Master</title>
+    <link rel='stylesheet' href='@routes.WebJarAssets.at(WebJarAssets.locate("css/bootstrap.min.css"))'>
+    <link rel='stylesheet' href='@routes.Assets.at("stylesheets/main.css")'>   
+    <link rel="shortcut icon" type="image/png" href='@routes.Assets.at("images/favicon.png")'>
+    <script src='@routes.WebJarAssets.at(WebJarAssets.locate("angular.js"))' type="text/javascript"></script>
+    <script src='@routes.Assets.at("javascripts/controller.js")' type="text/javascript"></script>
+</head>
+<body ng-controller="ServerCtrl">
+
+<div class="container">
+    <div class="navbar">
+        <div class="navbar-inner">
+            <a class="brand" href="#">Master</a>
+        </div>
+    </div>
+    <div class="row">
+    <div class="span12">
+        <h1>Image Server Status</h1>
+        <div>
+        <div ng-repeat="(key, value) in pingData" >
+            <img src="/assets/images/ZX81.jpg" class="img-polaroid"  width="20%">
+            <div>{{key}}, <span ng-class="getStyle(value)">{{value}}</span></div>
+        </div>
+        </div>
+    </div>
+    </div>
+</div>
+
+</body>
+</html>
+
