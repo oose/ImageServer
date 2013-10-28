@@ -1,0 +1,23 @@
+.unevaluated {
+    background-color: darkred;
+    padding: 15px;
+    width: 270px;
+    border-radius: 15px;
+    margin-bottom: 5px;
+}
+
+.inevaluation {
+    background-color: orange;
+    padding: 15px;
+    width: 270px;
+    border-radius: 15px;
+    margin-bottom: 5px;
+}
+
+.evaluated {
+    background-color: darkolivegreen;
+    padding: 15px;
+    width: 270px;
+    border-radius: 15px;
+    margin-bottom: 5px;
+}

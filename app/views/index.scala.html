@@ -1,9 +1,9 @@
-@()
+@(host: String)
 <!DOCTYPE html lang="en">
 
 <html ng-app>
 <head>
-    <title>Master</title>
+    <title>Server</title>
     <link rel='stylesheet' href='@routes.WebJarAssets.at(WebJarAssets.locate("css/bootstrap.min.css"))'>
     <link rel='stylesheet' href='@routes.Assets.at("stylesheets/main.css")'>   
     <link rel="shortcut icon" type="image/png" href='@routes.Assets.at("images/favicon.png")'>
@@ -15,19 +15,36 @@
 <div class="container">
     <div class="navbar">
         <div class="navbar-inner">
-            <a class="brand" href="#">Master</a>
+            <a class="brand" href="#">Server</a>
         </div>
     </div>
     <div class="row">
     <div class="span12">
-        <h1>Image Server Status</h1>
-        <div>
-        <div ng-repeat="(key, value) in pingData" >
-            <img src="/assets/images/ZX81.jpg" class="img-polaroid"  width="20%">
-            <div>{{key}}, <span ng-class="getStyle(value)">{{value}}</span></div>
-        </div>
-        </div>
+        <h1>Image Server <i>@host</i> Status</h1>
+        <h3>Total images: {{ imageData.total }}</h3>
     </div>
+    </div>
+    <div class="row">
+        <div class="span4">
+            <h3>Not evalulated</h3>
+            <div ng-repeat="i in imageData.unevaluated" class="unevaluated">
+                <img ng-src="/image/{{i}}" width="50%" class="img-polaroid"/>
+            </div>
+        </div>
+        <div class="span4">
+            <h3>In Evaluation</h3>
+            <div ng-repeat="i in imageData.inEvaluation" class="inevaluation">
+                <img ng-src="/image/{{i}}" width="50%" class="img-polaroid"/>
+            </div>
+
+        </div>
+        <div class="span4">
+            <h3>Evaluated</h3>
+            <div ng-repeat="i in imageData.evaluated" class="evaluated">
+                <img ng-src="/image/{{i}}" width="50%" class="img-polaroid"/>
+            </div>
+
+        </div>
     </div>
 </div>
 

@@ -1,8 +1,7 @@
 "use strict";
 
 function ServerCtrl($scope, $http, $window) {
-	
-	$scope.imageData = {}
+
 
     $scope.getStyle = function(style) {
         return style
@@ -29,7 +28,7 @@ function ServerCtrl($scope, $http, $window) {
     $scope.socket.onmessage = function (event) {
         $scope.$apply(function () {
             var wsData = JSON.parse(event.data)
-            $scope.imageData["\""+wsData.id +"\""] = wsData.state
+            $scope.imageData = wsData
             console.log($scope.imageData)
         })
     }
