@@ -63,7 +63,7 @@ case class StatusReportChildActor(directoryActor: ActorRef) extends Actor with A
 
     case sr: DirectoryActor.StatusResponse => 
       log.info(s"""
-          pushing ${Json.prettyPrint(Json.toJson(sr))} to websocket channel.
+          pushing statusreponse to websocket channel.
           
           """)
       outChannel.push(Json.toJson(sr))

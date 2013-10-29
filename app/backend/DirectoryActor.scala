@@ -1,46 +1,77 @@
 package backend
 
 import java.io.File
-import scala.collection.JavaConversions.collectionAsScalaIterable
+import scala.collection._
+import scala.collection.JavaConversions._
+import scala.concurrent.duration._
 import org.apache.commons.io.FileUtils
 import akka.actor._
+import akka.actor.SupervisorStrategy._
 import akka.event.LoggingReceive
-import java.net.URI
-import scala.collection._
+import common.config.Configured
+import util.AppConfig
+import java.io.FileNotFoundException
 
-class DirectoryActor(imageDir: String) extends Actor with ActorLogging {
+class DirectoryActor extends Actor with ActorLogging with Configured {
 
   import CommonMsg._
   import DirectoryActor._
   import ListUtils._
 
-  private[this] var images: List[Image] = scanDirectory(imageDir)
+  private[this] val appConfig = configured[AppConfig]
+
+  private[this] var images: List[Image] = scanDirectory(appConfig.imageDir.get)
 
   private[this] var imageActors: Map[Image, ActorRef] = Map.empty
+
+  override val supervisorStrategy =
+    OneForOneStrategy(maxNrOfRetries = 10, withinTimeRange = 1 minute) {
+      case _: UnsupportedOperationException ⇒ Resume
+      case _: FileNotFoundException ⇒ Restart
+      case _: ActorKilledException ⇒ Stop
+      case _: Exception ⇒ Escalate
+    }
+
+  override def preStart() {
+    log.info("""
+        starting DirectoryActor
+        """)
+  }
+
+  override def postStop() {
+    log.info("""
+        DirectoryActor about to be stopped
+        """)
+  }
 
   /**
    * @return a list of graphic files in the directory.
    */
-  def scanDirectory(dir: String): List[Image] = {
+  private def scanDirectory(dir: String): List[Image] = {
     log.info("dir: " + dir)
     val files = FileUtils.listFiles(new File(dir), Array("jpg", "png", "gif"), false)
     files.map(f => Image(f.getName())).toList
   }
 
+  private def findPairForImage(imageId: String): Option[(Image, ActorRef)] = {
+    imageActors.find { case (img, actor) => img.id == imageId }
+  }
+
   def receive = LoggingReceive {
     case RequestImageId =>
-      val image = images.nextImage()
-      image match {
+      images.nextImage() match {
+        // found an image to proccess
         case Some(image) =>
           // create a new ImageActor - it will ping itself after a timeout,
           // e.g. when no evaluation happened
-          val imageActor = context.actorOf(Props(new ImageActor(image, self)), s"ImageActor${image.id}")
+          val imageActor = context.actorOf(Props(ImageActor(image)), s"ImageActor${image.id}")
           imageActors = imageActors + (image -> imageActor)
           images = images.changeState(image, InEvaluation)
+          sender ! Some(image)
+        // we could not find an image to process
         case None =>
+          sender ! None
       }
-      // return the Option[String] to the sender
-      sender ! image
 
     case StatusRequest =>
       sender ! images.computeStats()
@@ -54,18 +85,17 @@ class DirectoryActor(imageDir: String) extends Actor with ActorLogging {
       imageActors = imageActors - image
       images = images.changeState(image, UnEvaluated)
 
-    case eval : Evaluation =>
+    // TODO refactor
+    case eval: Evaluation =>
       val imageName = new File(eval.id).getName()
       log.info(s"""
           reveiced evaluation for ${eval.id} / ${imageName}.
           Images in queue: ${imageActors.keys}
           """)
 
-      // TODO improve method
-      val imgActor = imageActors.find { case (img, actor) => img.id == imageName }
-
-      imgActor match {
+      findPairForImage(imageName) match {
         case Some((image, actor)) =>
+          // forward the evaluation to the ServerActor
           actor forward eval
           images = images.changeState(image.copy(tags = Some(eval.tags)), Evaluated)
         case None =>
@@ -76,29 +106,44 @@ class DirectoryActor(imageDir: String) extends Actor with ActorLogging {
           sender ! EvaluationRejected(s"Image ${eval.id} has expired")
           images = images.changeState(Image(eval.id, UnEvaluated), UnEvaluated)
       }
+
+    case msg @ "failure" =>
+      log.info(s"""
+          received message: ${msg}.
+      """)
+      throw new UnsupportedOperationException()
+
+    case msg @ "error" =>
+      log.info(s"""
+          received message: ${msg}.
+      """)
+      self ! akka.actor.Kill
+
   }
 
 }
 
 object ListUtils {
-  implicit class StateChange(list: List[Image]) {
+  implicit class StateChange(imageList: List[Image]) {
     def changeState(img: Image, newState: EvaluationState) = {
-      img.copy(state = newState) :: list.filterNot(_.id == img.id)
+      img.copy(state = newState) :: imageList.filterNot(_.id == img.id)
     }
 
     /**
      *  @return the first image which remains to be evaluated if any.
      */
     def nextImage(): Option[Image] = {
-      list.find(img => img.state == UnEvaluated)
+      imageList.find(img => img.state == UnEvaluated)
     }
 
-    def filterWith(state: EvaluationState) = list.filter(_.state == state)
-    
-    def computeStats() = DirectoryActor.StatusResponse(list.size,
-        list.filterWith(UnEvaluated).map(_.id),
-        list.filterWith(InEvaluation).map(_.id),
-        list.filterWith(Evaluated).map(_.id))
+    def filterWith(state: EvaluationState) = imageList.filter(_.state == state)
+
+    def computeStats(): DirectoryActor.StatusResponse =
+      DirectoryActor.StatusResponse(imageList.size,
+        imageList.filterWith(UnEvaluated).size,
+        imageList.filterWith(InEvaluation).size,
+        imageList.filterWith(Evaluated).size,
+        imageList)
   }
 }
 
@@ -128,5 +173,12 @@ object DirectoryActor {
   case object RequestImageId
 
   case object StatusRequest
-  case class StatusResponse(total: Int, unevaluated: List[String], inEvaluation: List[String], evaluated: List[String])
+  case class StatusResponse(total: Int,
+    notEvaluated: Int,
+    inEvaluation: Int,
+    evaluated: Int,
+    images: List[Image]) {
+    override def toString = s"StatusResponse($total, $notEvaluated, $inEvaluation, $evaluated)"
+  }
+
 }

@@ -1,11 +1,9 @@
 package controllers
 
 import java.io.File
-
 import scala.annotation.implicitNotFound
 import scala.concurrent.Future
 import scala.concurrent.duration._
-
 import akka.actor._
 import akka.pattern.ask
 import backend.DirectoryActor
@@ -20,32 +18,47 @@ import play.api.libs.json._
 import play.api.libs.json.Json
 import play.api.libs.json.Json.toJson
 import play.api.mvc._
+import java.util.Calendar
+import java.util.GregorianCalendar
+import org.apache.http.impl.cookie.DateUtils
+import common.config.Configured
+import _root_.util.AppConfig
 
-object Application extends Controller {
+object Application extends Controller with Configured {
 
   import DirectoryActor._
+  
+   val appConfig = configured[AppConfig]
 
   implicit val timeout = akka.util.Timeout(5.seconds)
 
-  val directoryActor = Akka.system.actorOf(Props(new DirectoryActor(imageDir.get)), "DirectoryActor")
+  val directoryActor = Akka.system.actorOf(Props[DirectoryActor], "DirectoryActor")
 
   val statusReportActor = Akka.system.actorOf(Props(new StatusReportActor(directoryActor)), "StatusReportActor")
 
-  def imagePath[A](request: Request[A], id: String) = "http://" + request.host + request.path + "/" + id
-
+ 
+  
   /**
-   * get the configuration for the image directory.
+   * compute the next year for use in EXPIRES cache settings
    */
-  private def imageDir: Option[String] = {
-    Play.current.configuration.getString("image.dir")
+  private def nextYear() = {
+    val calendar = new GregorianCalendar();
+    calendar.add(Calendar.YEAR, 1);
+    DateUtils.formatDate(calendar.getTime());
   }
+  
+  /**
+   * compute the imagepath on this host for a given request and image id.
+   */
+  private def imagePath[A](request: Request[A], id: String) = 
+    "http://" + request.host + request.path + "/" + id
 
   /**
    * serve the main index page.
    */
   def index = Action {
-    request => 
-    Ok(views.html.index(request.host))
+    request =>
+      Ok(views.html.index(request.host))
   }
 
   /**
@@ -116,11 +129,11 @@ object Application extends Controller {
       Logger.info(s"""
           requested image for ${id}
           """)
-      imageDir match {
+      appConfig.imageDir match {
         case Some(dir) =>
           val file = new File(dir + "/" + id)
           file.exists() match {
-            case true => Ok.sendFile(content = file, inline = true)
+            case true => Ok.sendFile(content = file, inline = true).withHeaders((EXPIRES -> nextYear))
             case false => BadRequest
           }
         case None => BadRequest
@@ -156,16 +169,39 @@ object Application extends Controller {
         case None => Future { BadRequest("value for tags not specified in body") }
       }
   }
+  
+  def die(msg: String) = Action {
+    directoryActor ! msg
+    Ok
+  }
 
   /**
    * request new websocket channels from the [[backend.StatusReportActor]]
-   * Reply will have the following format:
+   * The reply will have the following format:
    * {{{
    * {
-   * "total" : 30,
-   * "unevaluated" : [ "DSC05737.jpg", "DSC05759.jpg", ... ],
-   * "inEvaluation" : [ ],
-   * "evaluated" : [ "DSC05730.jpg" ]
+   * total: 30,
+   * images: [
+   * {
+   * id: "DSC05737.jpg",
+   * state: "is evaluated",
+   * tags: [
+   * "boot",
+   * "test",
+   * "whatever"
+   * ]
+   * },
+   * {
+   * id: "DSC05730.jpg",
+   * state: "is evaluated",
+   * tags: [
+   * "boot"
+   * ]
+   * },
+   * {
+   * id: "DSC05759.jpg",
+   * state: "not evaluated"
+   * },...
    * }
    * }}}
    */

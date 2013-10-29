@@ -36,4 +36,8 @@ function ServerCtrl($scope, $http, $window) {
     $scope.socket.onclose = function (event) {
         console.log('closed websocket');
     }
+    
+    $scope.causeError = function(msg) {
+    	$http.get('/die/' +msg)
+    }
 }

@@ -14,6 +14,8 @@ GET    /image           controllers.Application.imageId
 
 GET    /image/:id       controllers.Application.image(id: String)
 
+GET    /die/:msg        controllers.Application.die(msg: String)
+
 
 # POST tags as Json body
 POST   /image           controllers.Application.saveMetaData

@@ -11,6 +11,7 @@ object ApplicationBuild extends Build {
   val appDependencies = Seq(
     "commons-io" % "commons-io" % "2.4",
     "com.typesafe.akka" %% "akka-camel" % "2.2.0",
+    "org.apache.activemq" % "activemq-camel" % "5.8.0",
     "org.webjars" %% "webjars-play" % "2.2.0",
     "org.webjars" % "angularjs" % "1.2.0-rc.3",
     "org.webjars" % "bootstrap" % "2.3.2",

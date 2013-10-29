@@ -21,7 +21,7 @@ import akka.util.Timeout.durationToTimeout
 import play.api.libs.functional.syntax.toFunctionalBuilderOps
 import play.api.libs.json.Json
 
-class ImageActor(id: Image, directoryActorRef: ActorRef) extends Actor with ActorLogging {
+case class ImageActor(id: Image) extends Actor with ActorLogging {
   import DirectoryActor._
 
   implicit val ec = context.dispatcher
@@ -37,10 +37,15 @@ class ImageActor(id: Image, directoryActorRef: ActorRef) extends Actor with Acto
 
   val ticker = context.system.scheduler.scheduleOnce(3.minutes, self, ImageActor.TimeOutImageEvaluation)
 
+  override def preStart = {
+    log.info(s"""
+        ImageActor $id started.
+        
+    """)
+  }
   override def postStop = {
     log.info(s"""
-        ImageActor $id stopped.
-        
+        ImageActor $id stopped. 
     """)
   }
 
@@ -70,7 +75,7 @@ class ImageActor(id: Image, directoryActorRef: ActorRef) extends Actor with Acto
           sending parent an ExpiredImageEvaluation message
           
       """)
-      directoryActorRef ! CommonMsg.ExpiredImageEvaluation(id)
+      context.parent ! CommonMsg.ExpiredImageEvaluation(id)
   }
 
 }

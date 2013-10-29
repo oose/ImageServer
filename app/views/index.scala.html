@@ -3,9 +3,9 @@
 
 <html ng-app>
 <head>
-    <title>Server</title>
+    <title>Server @host</title>
     <link rel='stylesheet' href='@routes.WebJarAssets.at(WebJarAssets.locate("css/bootstrap.min.css"))'>
-    <link rel='stylesheet' href='@routes.Assets.at("stylesheets/main.css")'>   
+    <link rel='stylesheet' href='@routes.Assets.at("stylesheets/main.css")'>
     <link rel="shortcut icon" type="image/png" href='@routes.Assets.at("images/favicon.png")'>
     <script src='@routes.WebJarAssets.at(WebJarAssets.locate("angular.js"))' type="text/javascript"></script>
     <script src='@routes.Assets.at("javascripts/controller.js")' type="text/javascript"></script>
@@ -15,35 +15,73 @@
 <div class="container">
     <div class="navbar">
         <div class="navbar-inner">
-            <a class="brand" href="#">Server</a>
+            <a class="brand" href="#">Server @host</a>
         </div>
     </div>
     <div class="row">
-    <div class="span12">
-        <h1>Image Server <i>@host</i> Status</h1>
-        <h3>Total images: {{ imageData.total }}</h3>
+        <div class="span12">
+            <h3>Charts</h3>
+        </div>
     </div>
+    <div class="row">
+        <div class="span6">
+            <!-- Charts -->
+            <div>
+                <div class="notevaluatedbar muted" style="width:{{ imageData.notEvaluated / imageData.total * 100 }}%">
+                    <span class="label">{{imageData.notEvaluated}}</span>
+                </div>
+                <div class="inevaluationbar muted" style="width:{{ imageData.inEvaluation / imageData.total * 100 }}%">
+                    <span class="label">{{imageData.inEvaluation}}</span>
+                </div>
+                <div class="evaluatedbar muted" style="width:{{ imageData.evaluated / imageData.total * 100 }}%">
+                   <span class="label">{{imageData.evaluated}}</span>
+                </div>
+            </div>
+        </div>
+        <div class="span6">
+            <span class="muted pull-right">Trigger errors:
+            <div class="btn-group">
+                <button class="btn btn-warning" type="button" ng-click="causeError('failure')">Failure</button>
+                <button class="btn btn-danger" type="button" ng-click="causeError('error')">Error</button>
+            </div>
+                </span>
+        </div>
     </div>
     <div class="row">
         <div class="span4">
             <h3>Not evalulated</h3>
-            <div ng-repeat="i in imageData.unevaluated" class="unevaluated">
-                <img ng-src="/image/{{i}}" width="50%" class="img-polaroid"/>
+
+            <div class="column-scrollable cornered">
+                <div ng-repeat="i in imageData.images | filter:{state:'not evaluated'}" class="unevaluated">
+                    <img ng-src="/image/{{i.id}}" width="50%" class="img-polaroid img-margin"/>
+                </div>
             </div>
         </div>
         <div class="span4">
             <h3>In Evaluation</h3>
-            <div ng-repeat="i in imageData.inEvaluation" class="inevaluation">
-                <img ng-src="/image/{{i}}" width="50%" class="img-polaroid"/>
-            </div>
 
+            <div class="column-scrollable cornered">
+                <div ng-repeat="i in imageData.images | filter:{state:'in evaluation'}" class="inevaluation">
+                    <img ng-src="/image/{{i.id}}" width="50%" class="img-polaroid img-margin"/>
+                </div>
+            </div>
         </div>
         <div class="span4">
             <h3>Evaluated</h3>
-            <div ng-repeat="i in imageData.evaluated" class="evaluated">
-                <img ng-src="/image/{{i}}" width="50%" class="img-polaroid"/>
-            </div>
 
+            <div class="column-scrollable cornered">
+                <div class="row evaluated" ng-repeat="i in imageData.images | filter:{state:'is evaluated'}">
+                    <div class="span2">
+                        <img ng-src="/image/{{i.id}}" width="50%" class="img-polaroid img-margin"/>
+                    </div>
+                    <div class="span2">
+                        <h4 class="white">Tags</h4>
+                        <ul class="unstyled">
+                            <li ng-repeat="t in i.tags"><strong class="white">{{ t }}</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
