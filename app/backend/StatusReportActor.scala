@@ -1,14 +1,19 @@
 package backend
-import akka.actor._
-import akka.pattern._
+
+import scala.concurrent.duration.DurationInt
+
 import play.api.libs.iteratee.Concurrent
 import play.api.libs.iteratee.Enumerator
 import play.api.libs.iteratee.Iteratee
 import play.api.libs.json.JsValue
-import akka.event.LoggingReceive
-import scala.concurrent.duration._
 import play.api.libs.json.Json
-import util.Implicits._
+
+import akka.actor._
+import akka.actor.actorRef2Scala
+import akka.event.LoggingReceive
+
+import DirectoryActor.StatusRequest
+import util.Implicits.statusReponseJson
 
 class StatusReportActor(directoryActor: ActorRef) extends Actor with ActorLogging {
   import StatusReportActor._

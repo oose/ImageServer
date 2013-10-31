@@ -1,11 +1,13 @@
 
 
-import play.api._
-import common.config.Configuration
-import play.api.Logger
-import util.AppConfig
-import akka.camel.CamelExtension
 import org.apache.activemq.camel.component.ActiveMQComponent
+
+import play.api._
+
+import akka.camel._
+
+import common.config.Configuration
+import util.AppConfig
 
 object Global extends GlobalSettings with Configuration {
 

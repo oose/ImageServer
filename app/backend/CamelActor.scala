@@ -1,11 +1,10 @@
 package backend
 
-import akka.actor.Actor
-import akka.camel.Producer
+import akka.actor._
+import akka.camel._
+
 import common.config.Configured
 import util.AppConfig
-import akka.actor.ActorLogging
-import akka.camel.Oneway
 
 /**
  * Camel Producer endpoint which is configured via [[util.AppConfig.camelEndpoint]].

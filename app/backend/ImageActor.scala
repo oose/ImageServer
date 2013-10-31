@@ -5,35 +5,25 @@ import java.io.File
 import scala.collection.immutable.List
 import scala.collection.immutable.Map
 import scala.concurrent.duration.DurationInt
-import scala.util.Failure
-import scala.util.Success
 
 import org.apache.camel.Exchange
 import org.apache.commons.io.IOUtils
 
+import play.api.libs.json.Json
+
 import akka.actor._
 import akka.actor.actorRef2Scala
-import akka.camel.CamelExtension
-import akka.camel.CamelMessage
+import akka.camel._
 import akka.event.LoggingReceive
-import akka.util.Timeout
-import akka.util.Timeout.durationToTimeout
-import play.api.libs.functional.syntax.toFunctionalBuilderOps
-import play.api.libs.json.Json
+
+import util.Implicits.evaluationJson
 
 case class ImageActor(id: Image) extends Actor with ActorLogging {
   import DirectoryActor._
 
   implicit val ec = context.dispatcher
-  implicit val timeout: Timeout = 5 seconds
-
-  implicit val evaluationToJson = Json.writes[DirectoryActor.Evaluation]
 
   val camelActor = context.actorOf(Props[CamelActor], "CamelActor")
-  CamelExtension(context.system).activationFutureFor(camelActor) onComplete {
-    case Success(actor) => println("Actor started successfully")
-    case Failure(e) => e.printStackTrace
-  }
 
   val ticker = context.system.scheduler.scheduleOnce(3.minutes, self, ImageActor.TimeOutImageEvaluation)
 

@@ -1,16 +1,25 @@
 package backend
 
 import java.io.File
-import scala.collection._
+import java.io.FileNotFoundException
+
 import scala.collection.JavaConversions._
-import scala.concurrent.duration._
+import scala.collection.Map
+import scala.concurrent.duration.DurationInt
+
 import org.apache.commons.io.FileUtils
+
 import akka.actor._
-import akka.actor.SupervisorStrategy._
+import akka.actor.SupervisorStrategy.Escalate
+import akka.actor.SupervisorStrategy.Restart
+import akka.actor.SupervisorStrategy.Resume
+import akka.actor.SupervisorStrategy.Stop
+import akka.actor.actorRef2Scala
 import akka.event.LoggingReceive
+
+import CommonMsg.ExpiredImageEvaluation
 import common.config.Configured
 import util.AppConfig
-import java.io.FileNotFoundException
 
 class DirectoryActor extends Actor with ActorLogging with Configured {
 

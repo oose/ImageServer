@@ -1,14 +1,15 @@
 package util
 
-import play.api.libs.json.Json
-import backend.DirectoryActor._
-import backend.Image
-import backend.EvaluationState
-import play.api.libs.json.Writes
-import backend.UnEvaluated
+import play.api.libs.functional.syntax._
 import play.api.libs.json.JsString
-import backend.InEvaluation
+import play.api.libs.json.Writes
 import backend.Evaluated
+import backend.EvaluationState
+import backend.InEvaluation
+import backend.UnEvaluated
+import backend.DirectoryActor
+import backend.Image
+import play.api.libs.json.Json
 
 class LowLevelImplicits {
 
@@ -21,8 +22,10 @@ class LowLevelImplicits {
       }
     }
   }
-  implicit val imageJson = Json.writes[Image]
+  import backend.DirectoryActor._
+  implicit val imageJson = Json.writes[backend.Image]
   implicit val statusReponseJson = Json.writes[StatusResponse]
+  implicit val evaluationJson = Json.writes[Evaluation]
 }
 
 object Implicits extends LowLevelImplicits

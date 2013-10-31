@@ -1,43 +1,56 @@
 package controllers
 
 import java.io.File
-import scala.annotation.implicitNotFound
+import java.util.Calendar
+import java.util.GregorianCalendar
+
 import scala.concurrent.Future
-import scala.concurrent.duration._
-import akka.actor._
-import akka.pattern.ask
-import backend.DirectoryActor
-import backend.Image
-import backend.StatusReportActor
-import util.Implicits._
+import scala.concurrent.duration.DurationInt
+
+import org.apache.http.impl.cookie.DateUtils
+
 import play.api._
 import play.api.Play.current
 import play.api.libs.concurrent.Akka
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
-import play.api.libs.json._
+import play.api.libs.json.JsValue
 import play.api.libs.json.Json
 import play.api.libs.json.Json.toJson
 import play.api.mvc._
-import java.util.Calendar
-import java.util.GregorianCalendar
-import org.apache.http.impl.cookie.DateUtils
+
+import akka.actor._
+import akka.actor.actorRef2Scala
+import akka.pattern.ask
+
+import backend.DirectoryActor
+import backend.DirectoryActor.Evaluation
+import backend.DirectoryActor.EvaluationAccepted
+import backend.DirectoryActor.EvaluationRejected
+import backend.DirectoryActor.EvaluationStatus
+import backend.DirectoryActor.RequestImageId
+import backend.DirectoryActor.StatusRequest
+import backend.DirectoryActor.StatusResponse
+import backend.Image
+import backend.StatusReportActor
+import common.akka.AkkaUtil.createActor
 import common.config.Configured
-import _root_.util.AppConfig
+import util.AppConfig
+import util.Implicits.statusReponseJson
 
 object Application extends Controller with Configured {
 
   import DirectoryActor._
-  
-   val appConfig = configured[AppConfig]
+
+  val appConfig = configured[AppConfig]
+  import common.akka.AkkaUtil._
+  implicit val actorSystem = Akka.system
 
   implicit val timeout = akka.util.Timeout(5.seconds)
 
-  val directoryActor = Akka.system.actorOf(Props[DirectoryActor], "DirectoryActor")
+  val directoryActor = createActor(Props[DirectoryActor], "DirectoryActor")
 
-  val statusReportActor = Akka.system.actorOf(Props(new StatusReportActor(directoryActor)), "StatusReportActor")
+  val statusReportActor = createActor(Props(new StatusReportActor(directoryActor)), "StatusReportActor")
 
- 
-  
   /**
    * compute the next year for use in EXPIRES cache settings
    */
@@ -46,11 +59,11 @@ object Application extends Controller with Configured {
     calendar.add(Calendar.YEAR, 1);
     DateUtils.formatDate(calendar.getTime());
   }
-  
+
   /**
    * compute the imagepath on this host for a given request and image id.
    */
-  private def imagePath[A](request: Request[A], id: String) = 
+  private def imagePath[A](request: Request[A], id: String) =
     "http://" + request.host + request.path + "/" + id
 
   /**
@@ -169,7 +182,7 @@ object Application extends Controller with Configured {
         case None => Future { BadRequest("value for tags not specified in body") }
       }
   }
-  
+
   def die(msg: String) = Action {
     directoryActor ! msg
     Ok
