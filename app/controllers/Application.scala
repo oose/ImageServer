@@ -27,7 +27,7 @@ import backend.DirectoryActor.Evaluation
 import backend.DirectoryActor.EvaluationAccepted
 import backend.DirectoryActor.EvaluationRejected
 import backend.DirectoryActor.EvaluationStatus
-import backend.DirectoryActor.RequestImageId
+import backend.DirectoryActor.RequestImage
 import backend.DirectoryActor.StatusRequest
 import backend.DirectoryActor.StatusResponse
 import backend.Image
@@ -124,7 +124,7 @@ object Application extends Controller with Configured {
    */
   def imageId = Action.async {
     request =>
-      val response = (directoryActor ? RequestImageId).mapTo[Option[Image]]
+      val response = (directoryActor ? RequestImage).mapTo[Option[Image]]
       response.map(
         _ match {
           case Some(image) => Ok(toJson(Map("id" -> imagePath(request, image.id))))
@@ -142,7 +142,7 @@ object Application extends Controller with Configured {
       Logger.info(s"""
           requested image for ${id}
           """)
-      appConfig.imageDir match {
+      appConfig.imageDir match { 
         case Some(dir) =>
           val file = new File(dir + "/" + id)
           file.exists() match {

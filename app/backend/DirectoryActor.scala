@@ -19,7 +19,7 @@ import akka.event.LoggingReceive
 
 import CommonMsg.ExpiredImageEvaluation
 import common.config.Configured
-import util.AppConfig
+import util.ConfigTrait
 
 class DirectoryActor extends Actor with ActorLogging with Configured {
 
@@ -27,11 +27,11 @@ class DirectoryActor extends Actor with ActorLogging with Configured {
   import DirectoryActor._
   import ListUtils._
 
-  private[this] val appConfig = configured[AppConfig]
-
-  private[this] var images: List[Image] = scanDirectory(appConfig.imageDir.get)
-
+  private[this] val appConfig = configured[ConfigTrait]
+  
   private[this] var imageActors: Map[Image, ActorRef] = Map.empty
+  
+  var images = appConfig.images
 
   override val supervisorStrategy =
     OneForOneStrategy(maxNrOfRetries = 10, withinTimeRange = 1 minute) {
@@ -53,21 +53,13 @@ class DirectoryActor extends Actor with ActorLogging with Configured {
         """)
   }
 
-  /**
-   * @return a list of graphic files in the directory.
-   */
-  private def scanDirectory(dir: String): List[Image] = {
-    log.info("dir: " + dir)
-    val files = FileUtils.listFiles(new File(dir), Array("jpg", "png", "gif"), false)
-    files.map(f => Image(f.getName())).toList
-  }
 
   private def findPairForImage(imageId: String): Option[(Image, ActorRef)] = {
     imageActors.find { case (img, actor) => img.id == imageId }
   }
 
   def receive = LoggingReceive {
-    case RequestImageId =>
+    case RequestImage =>
       images.nextImage() match {
         // found an image to proccess
         case Some(image) =>
@@ -179,15 +171,13 @@ object DirectoryActor {
   case object EvaluationAccepted extends EvaluationStatus
   case class EvaluationRejected(reason: String) extends EvaluationStatus
 
-  case object RequestImageId
+  case object RequestImage
 
   case object StatusRequest
   case class StatusResponse(total: Int,
     notEvaluated: Int,
     inEvaluation: Int,
     evaluated: Int,
-    images: List[Image]) {
-    override def toString = s"StatusResponse($total, $notEvaluated, $inEvaluation, $evaluated)"
-  }
+    images: List[Image]) 
 
 }
