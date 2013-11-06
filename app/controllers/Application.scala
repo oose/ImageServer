@@ -30,7 +30,7 @@ import backend.DirectoryActor.EvaluationStatus
 import backend.DirectoryActor.RequestImage
 import backend.DirectoryActor.StatusRequest
 import backend.DirectoryActor.StatusResponse
-import backend.Image
+import model.Image
 import backend.StatusReportActor
 import common.akka.AkkaUtil.createActor
 import common.config.Configured
@@ -128,7 +128,7 @@ object Application extends Controller with Configured {
       response.map(
         _ match {
           case Some(image) => Ok(toJson(Map("id" -> imagePath(request, image.id))))
-          case None => BadRequest(toJson(Map("error" -> "No more files available")))
+          case None => BadRequest(toJson(Map("error" -> s"No more files available on ${request.host} ")))
         })
   }
 

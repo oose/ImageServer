@@ -1,21 +1,18 @@
 package util
 
 import java.io.File
-
 import scala.collection.JavaConversions._
-
 import org.apache.commons.io.FileUtils
-
 import play.api._
-
-import backend.Image
+import scala.concurrent.duration._
+import model.Image
 
 trait ConfigTrait {
 
   def imageDir: Option[String]
   def camelEndpoint: String
   def images: List[Image]
-
+  def imageEvaluationTimeOut: FiniteDuration
 }
 
 class AppConfig extends ConfigTrait {
@@ -27,7 +24,20 @@ class AppConfig extends ConfigTrait {
     Play.current.configuration.getString("camel.endpoint").getOrElse("none")
 
   
+  val imageEvaluationTimeOut = timeOutValue("image.evaluation.timeout")
+
+  
   val images = scanImageDirectory
+  
+  
+   private def timeOutValue(key: String) : FiniteDuration = {
+      val value = Play.current.configuration.getMilliseconds(key)
+      value match {
+        case Some(duration) => FiniteDuration(duration, MILLISECONDS)
+        case None =>
+          throw Play.current.configuration.globalError(s"Missing configuration key: [$key]")
+      } 
+   }
   
   /**
    * @return a list of graphic files in the directory.

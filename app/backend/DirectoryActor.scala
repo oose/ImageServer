@@ -3,22 +3,23 @@ package backend
 import java.io.File
 import java.io.FileNotFoundException
 
-import scala.collection.JavaConversions._
 import scala.collection.Map
-import scala.concurrent.duration.DurationInt
-
-import org.apache.commons.io.FileUtils
+import scala.concurrent.duration._
 
 import akka.actor._
 import akka.actor.SupervisorStrategy.Escalate
 import akka.actor.SupervisorStrategy.Restart
 import akka.actor.SupervisorStrategy.Resume
 import akka.actor.SupervisorStrategy.Stop
-import akka.actor.actorRef2Scala
+import akka.event.LogSource
 import akka.event.LoggingReceive
 
-import CommonMsg.ExpiredImageEvaluation
 import common.config.Configured
+import model.Evaluated
+import model.EvaluationState
+import model.Image
+import model.InEvaluation
+import model.UnEvaluated
 import util.ConfigTrait
 
 class DirectoryActor extends Actor with ActorLogging with Configured {
@@ -28,9 +29,9 @@ class DirectoryActor extends Actor with ActorLogging with Configured {
   import ListUtils._
 
   private[this] val appConfig = configured[ConfigTrait]
-  
+
   private[this] var imageActors: Map[Image, ActorRef] = Map.empty
-  
+
   var images = appConfig.images
 
   override val supervisorStrategy =
@@ -53,24 +54,26 @@ class DirectoryActor extends Actor with ActorLogging with Configured {
         """)
   }
 
-
   private def findPairForImage(imageId: String): Option[(Image, ActorRef)] = {
     imageActors.find { case (img, actor) => img.id == imageId }
   }
 
   def receive = LoggingReceive {
+
     case RequestImage =>
       images.nextImage() match {
         // found an image to proccess
         case Some(image) =>
           // create a new ImageActor - it will ping itself after a timeout,
           // e.g. when no evaluation happened
+          images = images.changeState(image, InEvaluation)
           val imageActor = context.actorOf(Props(ImageActor(image)), s"ImageActor${image.id}")
           imageActors = imageActors + (image -> imageActor)
-          images = images.changeState(image, InEvaluation)
+
           sender ! Some(image)
         // we could not find an image to process
         case None =>
+          log.debug("Nada: no image available")
           sender ! None
       }
 
@@ -82,9 +85,9 @@ class DirectoryActor extends Actor with ActorLogging with Configured {
     		  Image $image expired, removing image from queue
     		  
       """)
-      context.stop(sender)
       imageActors = imageActors - image
       images = images.changeState(image, UnEvaluated)
+      context.stop(sender)
 
     // TODO refactor
     case eval: Evaluation =>
@@ -124,6 +127,24 @@ class DirectoryActor extends Actor with ActorLogging with Configured {
 
 }
 
+object DirectoryActor {
+  case class Evaluation(id: String, tags: List[String])
+
+  trait EvaluationStatus
+  case object EvaluationAccepted extends EvaluationStatus
+  case class EvaluationRejected(reason: String) extends EvaluationStatus
+
+  case object RequestImage
+
+  case object StatusRequest
+  case class StatusResponse(total: Int,
+    notEvaluated: Int,
+    inEvaluation: Int,
+    evaluated: Int,
+    images: List[Image])
+
+}
+
 object ListUtils {
   implicit class StateChange(imageList: List[Image]) {
     def changeState(img: Image, newState: EvaluationState) = {
@@ -148,36 +169,4 @@ object ListUtils {
   }
 }
 
-/**
- * Enumeration of states an image can obtain.
- */
-sealed trait EvaluationState
-case object UnEvaluated extends EvaluationState
-case object InEvaluation extends EvaluationState
-case object Evaluated extends EvaluationState
 
-case class Image(id: String, state: EvaluationState = UnEvaluated, tags: Option[List[String]] = None) {
-  override def equals(arg: Any) = arg match {
-    case Image(id, _, _) => id == this.id
-    case _ => false
-  }
-  override def hashCode() = id.hashCode
-}
-
-object DirectoryActor {
-  case class Evaluation(id: String, tags: List[String])
-
-  trait EvaluationStatus
-  case object EvaluationAccepted extends EvaluationStatus
-  case class EvaluationRejected(reason: String) extends EvaluationStatus
-
-  case object RequestImage
-
-  case object StatusRequest
-  case class StatusResponse(total: Int,
-    notEvaluated: Int,
-    inEvaluation: Int,
-    evaluated: Int,
-    images: List[Image]) 
-
-}

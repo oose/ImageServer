@@ -19,4 +19,17 @@ class CamelActor extends Actor with Producer with Oneway with Configured with Ac
       
   def endpointUri = appConfig.camelEndpoint
   
+  override def preStart = {
+    log.info(s"""
+        CamelActor ${self} started.
+        
+    """)
+  }
+  override def postStop = {
+    log.info(s"""
+        CamelActor ${self} stopped. 
+    
+    """)
+  }
+  
 }

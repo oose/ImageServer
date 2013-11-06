@@ -10,6 +10,7 @@ import akka.testkit.TestKit
 import common.config.Configuration
 import util.ConfigTrait
 import scala.concurrent.duration._
+import model.Image
 
 /**
  *  A tiny class that can be used as a Specs2 'context'.
@@ -22,20 +23,21 @@ abstract class AkkaTestkitSpecs2Support extends TestKit(ActorSystem())
   def after = system.shutdown()
 }
 
-@RunWith(classOf[JUnitRunner])
-class DirectoryActorSpec extends Specification with NoTimeConversions with Configuration {
+
+class DirectoryActorSpec extends SpecificationWithJUnit with NoTimeConversions with Configuration {
 
   sequential
 
   implicit def stringToImage(name: String): Image = Image(name)
-  val images: List[Image] = List("I1", "I2", "I3")
+  val imageList: List[Image] = List("I1", "I2", "I3")
   
   configure {
     new ConfigTrait {
 
       override val imageDir = Some("/tmp")
       override val camelEndpoint = "direct:endpoint"
-      override def images = images
+      override val images = imageList
+      override val imageEvaluationTimeOut = 5 seconds
     }
   }
 
@@ -51,7 +53,7 @@ class DirectoryActorSpec extends Specification with NoTimeConversions with Confi
     "respond to a StatusRequest" in new AkkaTestkitSpecs2Support {
       val directoryActor = system.actorOf(Props[DirectoryActor])
       directoryActor ! StatusRequest
-      expectMsg(StatusResponse(3, 3, 0, 0, images))
+      expectMsg(StatusResponse(3, 3, 0, 0, imageList))
     }
 
     "respond with None if repeatedly asked for an image" in new AkkaTestkitSpecs2Support {

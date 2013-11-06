@@ -1,18 +1,19 @@
 package util
 
 import play.api.libs.functional.syntax._
-import play.api.libs.json.JsString
-import play.api.libs.json.Writes
-import backend.Evaluated
-import backend.EvaluationState
-import backend.InEvaluation
-import backend.UnEvaluated
-import backend.DirectoryActor
-import backend.Image
-import play.api.libs.json.Json
+import play.api.libs.json._
+
+import backend.DirectoryActor.StatusResponse
+import model.Evaluated
+import model.EvaluationState
+import model.Image
+import model.InEvaluation
+import model.UnEvaluated
 
 class LowLevelImplicits {
-
+  
+  import backend.DirectoryActor._
+  
   implicit val evaluationStateJson = new Writes[EvaluationState] {
     def writes(state: EvaluationState) = {
       state match {
@@ -22,9 +23,8 @@ class LowLevelImplicits {
       }
     }
   }
-  import backend.DirectoryActor._
-  implicit val imageJson = Json.writes[backend.Image]
-  implicit val statusReponseJson = Json.writes[StatusResponse]
+  implicit val imageJson : Writes[Image] = Json.writes[Image]
+  implicit val statusReponseJson : Writes[StatusResponse] = Json.writes[backend.DirectoryActor.StatusResponse]
   implicit val evaluationJson = Json.writes[Evaluation]
 }
 
