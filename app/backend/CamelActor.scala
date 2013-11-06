@@ -13,20 +13,22 @@ class CamelActor extends Actor with Producer with Oneway with Configured with Ac
 
   lazy val appConfig = configured[AppConfig]
   
-  log.info(s"""
-      Camel endpoint = ${appConfig.camelEndpoint}
-      """)
+  
       
   def endpointUri = appConfig.camelEndpoint
   
   override def preStart = {
     log.info(s"""
+      CamelActor endpoint = ${appConfig.camelEndpoint} created
+      """)
+      
+    log.debug(s"""
         CamelActor ${self} started.
         
     """)
   }
   override def postStop = {
-    log.info(s"""
+    log.debug(s"""
         CamelActor ${self} stopped. 
     
     """)

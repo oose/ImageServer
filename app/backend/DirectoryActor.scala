@@ -43,13 +43,13 @@ class DirectoryActor extends Actor with ActorLogging with Configured {
     }
 
   override def preStart() {
-    log.info("""
+    log.debug("""
         starting DirectoryActor
         """)
   }
 
   override def postStop() {
-    log.info("""
+    log.debug("""
         DirectoryActor about to be stopped
         """)
   }
@@ -122,9 +122,7 @@ class DirectoryActor extends Actor with ActorLogging with Configured {
           received message: ${msg}.
       """)
       self ! akka.actor.Kill
-
   }
-
 }
 
 object DirectoryActor {
