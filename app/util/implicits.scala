@@ -24,7 +24,7 @@ class LowLevelImplicits {
     }
   }
   implicit val imageJson : Writes[Image] = Json.writes[Image]
-  implicit val statusReponseJson : Writes[StatusResponse] = Json.writes[backend.DirectoryActor.StatusResponse]
+  implicit val statusReponseJson : Writes[StatusResponse] = Json.writes[StatusResponse]
   implicit val evaluationJson = Json.writes[Evaluation]
 }
 

@@ -47,9 +47,9 @@ object Application extends Controller with Configured {
 
   implicit val timeout = akka.util.Timeout(5.seconds)
 
-  val directoryActor = createActor(Props[DirectoryActor], "DirectoryActor")
+  val directoryActor = createActor(DirectoryActor.props, DirectoryActor.name)
 
-  val statusReportActor = createActor(Props(new StatusReportActor(directoryActor)), "StatusReportActor")
+  val statusReportActor = createActor(StatusReportActor.props(directoryActor), "StatusReportActor")
 
   /**
    * compute the next year for use in EXPIRES cache settings
@@ -166,7 +166,7 @@ object Application extends Controller with Configured {
       val body = request.body
       val id = (body \ "id").as[String]
       Logger.info(s"""
-          received evaluation data for ${body} in image server.
+          received evaluation data for ${body} in image server controller.
           json : ${Json.prettyPrint(request.body)}
           
       """)
@@ -175,7 +175,7 @@ object Application extends Controller with Configured {
           val response = (directoryActor ? Evaluation(id, tags)).mapTo[EvaluationStatus]
           response.map(r =>
             r match {
-              case EvaluationAccepted => Ok("Evaluation accepted")
+              case EvaluationAccepted => Ok(s"Evaluation accepted")
               case EvaluationRejected(reason) => BadRequest(reason)
             })
 

@@ -60,7 +60,7 @@ case class StatusReportChildActor(directoryActor: ActorRef) extends Actor with A
     context.parent ! Quit
   }
 
-  def receive = LoggingReceive {
+  def receive : Receive =  {
     case RequestWebSocket => sender ! WebSocketResponse(in, out)
 
     case StatusRequest =>
@@ -79,4 +79,6 @@ object StatusReportActor {
   case object RequestWebSocket
   case class WebSocketResponse(in: Iteratee[JsValue, _], out: Enumerator[JsValue])
   case object Quit
+  
+  def props(directoryActor: ActorRef) = Props(classOf[StatusReportActor], directoryActor)
 }

@@ -34,6 +34,7 @@ class DirectoryActor extends Actor with ActorLogging with Configured {
 
   var images = appConfig.images
 
+  /*
   override val supervisorStrategy =
     OneForOneStrategy(maxNrOfRetries = 10, withinTimeRange = 1 minute) {
       case _: UnsupportedOperationException ⇒ Resume
@@ -41,14 +42,17 @@ class DirectoryActor extends Actor with ActorLogging with Configured {
       case _: ActorKilledException ⇒ Stop
       case _: Exception ⇒ Escalate
     }
+*/
 
   override def preStart() {
+    super.preStart
     log.debug("""
         starting DirectoryActor
         """)
   }
 
   override def postStop() {
+    super.postStop
     log.debug("""
         DirectoryActor about to be stopped
         """)
@@ -58,19 +62,21 @@ class DirectoryActor extends Actor with ActorLogging with Configured {
     imageActors.find { case (img, actor) => img.id == imageId }
   }
 
-  def receive = LoggingReceive {
+  def receive : Receive = LoggingReceive {
 
     case RequestImage =>
       images.nextImage() match {
-        // found an image to proccess
+        // found an image to process
         case Some(image) =>
           // create a new ImageActor - it will ping itself after a timeout,
           // e.g. when no evaluation happened
-          images = images.changeState(image, InEvaluation)
-          val imageActor = context.actorOf(Props(ImageActor(image)), s"ImageActor${image.id}")
-          imageActors = imageActors + (image -> imageActor)
+          val (newImage, newImageList) = images.changeState(image, InEvaluation)
+          images = newImageList
+          val imageActor: ActorRef = context.actorOf(ImageActor.props(image), ImageActor.name(image))
+          imageActors = imageActors + (newImage -> imageActor)
 
-          sender ! Some(image)
+          sender ! Some(newImage)
+        
         // we could not find an image to process
         case None =>
           log.debug("Nada: no image available")
@@ -85,31 +91,56 @@ class DirectoryActor extends Actor with ActorLogging with Configured {
     		  Image $image expired, removing image from queue
     		  
       """)
+      log.info(s"""
+    		  ImageActors before : ${imageActors.size}
+      """)
       imageActors = imageActors - image
-      images = images.changeState(image, UnEvaluated)
-      context.stop(sender)
+      log.info(s"""
+    		  ImageActors after : ${imageActors.size}
+      """)
+      val (newImage, img) = images.changeState(image, UnEvaluated)
+      images = img
+      val originalSender = sender
+      context.stop(originalSender)
 
-    // TODO refactor
     case eval: Evaluation =>
       val imageName = new File(eval.id).getName()
       log.info(s"""
-          reveiced evaluation for ${eval.id} / ${imageName}.
-          Images in queue: ${imageActors.keys}
+          reveiced evaluation for ${eval.id} / ${imageName}
+          
           """)
 
       findPairForImage(imageName) match {
-        case Some((image, actor)) =>
+        // we found the image in the queue
+        case Some((image, imageActor)) =>
           // forward the evaluation to the ServerActor
-          actor forward eval
-          images = images.changeState(image.copy(tags = Some(eval.tags)), Evaluated)
+          log.info(s"""forwarding evaluation to ${imageActor}
+          			corresponding image: ${image}
+          			evaluation: ${eval}
+          			""")
+          val (newImage, newImages) = images.changeState(image.copy(tags = Some(eval.tags)), Evaluated)
+          images = newImages
+          log.info(s"""
+              new image in list: ${newImage}
+          """)
+          imageActor forward eval
+
         case None =>
           log.info(s"""
               Evaluating image ${eval.id} has expired.
               
           """)
           sender ! EvaluationRejected(s"Image ${eval.id} has expired")
-          images = images.changeState(Image(eval.id, UnEvaluated), UnEvaluated)
+          val (newImage, img) = images.changeState(Image(eval.id, UnEvaluated), UnEvaluated)
+          images = img
       }
+
+    case SuccessfulImageEvaluation(image) =>
+      val (newImage, newImages) = images.changeState(image, Evaluated)
+      images = newImages
+      val imageActor = imageActors(newImage)
+      imageActors = imageActors - newImage
+      context.stop(imageActor)
 
     case msg @ "failure" =>
       log.info(s"""
@@ -141,12 +172,18 @@ object DirectoryActor {
     evaluated: Int,
     images: List[Image])
 
+  def props() = Props[DirectoryActor]
+  def name() = "DirectoryActor"
+
 }
 
 object ListUtils {
   implicit class StateChange(imageList: List[Image]) {
-    def changeState(img: Image, newState: EvaluationState) = {
-      img.copy(state = newState) :: imageList.filterNot(_.id == img.id)
+    def changeState(img: Image, newState: EvaluationState): (Image, List[Image]) = {
+      val imageInList = imageList.find(_ == img.id).getOrElse(img)
+      val newImage = imageInList.copy(state = newState)
+      val newImageList = newImage :: imageList.filterNot(_.id == img.id)
+      (newImage, newImageList)
     }
 
     /**

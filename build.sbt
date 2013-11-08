@@ -16,9 +16,7 @@ libraryDependencies ++=  Seq(
     "org.webjars" % "angularjs" % "1.2.0-rc.3",
     "org.webjars" % "bootstrap" % "2.3.2",
     "com.typesafe.akka" %% "akka-testkit" % "2.2.0" % "test",
-    "org.specs2" % "classycle" % "1.4.1" % "test",
-    "org.scala-lang" % "scala-compiler" % "2.10.2" % "test"
-)
+    "org.specs2" % "classycle" % "1.4.1" % "test")
     
 playScalaSettings
 
