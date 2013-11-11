@@ -3,7 +3,13 @@
 CMD=./target/universal/stage/bin/imageserver
 
 echo -e "\033[1m"
-figlet ImageServer
+
+if hash figlet 2>/dev/null; then
+    figlet ImageServer
+else
+    echo -e ImageServer
+fi
+
 echo -e "\033[0m"
 
 echo -e "\033[1mDeleting tag directories\033[0m"

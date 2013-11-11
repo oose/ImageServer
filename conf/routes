@@ -28,6 +28,9 @@ POST   /image           controllers.Application.saveMetaData
 # open websocket for status information
 GET    /ws              controllers.Application.ws
 
+# Map static resources from the /public folder to the /assets URL path
+GET    /lib/require.js   controllers.WebJarAssets.requirejs
+
 # Map CSS and Javascript files from webjars to /webjars/*
 GET    /webjars/*file   controllers.WebJarAssets.at(file)
 

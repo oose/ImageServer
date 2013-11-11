@@ -18,6 +18,7 @@ libraryDependencies ++=  Seq(
     "org.webjars" % "angularjs" % "1.2.0-rc.3",
     "org.webjars" % "bootstrap" % "2.3.2",
     "oose.play" %% "config" % "1.0-SNAPSHOT",
+    "oose.play" %% "jsrouter" % "1.0-SNAPSHOT",
     "com.typesafe.akka" %% "akka-testkit" % "2.2.0" % "test",
     "org.specs2" % "classycle" % "1.4.1" % "test")
     
