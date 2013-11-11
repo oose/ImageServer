@@ -11,7 +11,7 @@ import play.api.libs.json.JsValue
 import akka.actor._
 import akka.camel._
 import akka.event.LoggingReceive
-import common.config.Configured
+import oose.play.config.Configured
 import model.Image
 import _root_.util.ConfigTrait
 import akka.util.Timeout

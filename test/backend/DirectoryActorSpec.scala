@@ -7,7 +7,7 @@ import org.specs2.time.NoTimeConversions
 import akka.actor._
 import akka.testkit.ImplicitSender
 import akka.testkit.TestKit
-import common.config.Configuration
+import oose.play.config.Configuration
 import util.ConfigTrait
 import scala.concurrent.duration._
 import model.Image

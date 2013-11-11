@@ -33,7 +33,7 @@ import backend.DirectoryActor.StatusResponse
 import model.Image
 import backend.StatusReportActor
 import common.akka.AkkaUtil.createActor
-import common.config.Configured
+import oose.play.config.Configured
 import util.AppConfig
 import util.Implicits.statusReponseJson
 
@@ -83,8 +83,7 @@ object Application extends Controller with Configured {
    */
   def ping = Action {
     request =>
-      val host = request.host
-      Ok(toJson(Map("success" -> s"server $host is alive")))
+      Ok(toJson(Map("success" -> s"server ${request.host} is alive")))
   }
 
   /**

@@ -14,7 +14,7 @@ import akka.actor.SupervisorStrategy.Stop
 import akka.event.LogSource
 import akka.event.LoggingReceive
 
-import common.config.Configured
+import oose.play.config.Configured
 import model.Evaluated
 import model.EvaluationState
 import model.Image
@@ -34,7 +34,7 @@ class DirectoryActor extends Actor with ActorLogging with Configured {
 
   var images = appConfig.images
 
-  /*
+  
   override val supervisorStrategy =
     OneForOneStrategy(maxNrOfRetries = 10, withinTimeRange = 1 minute) {
       case _: UnsupportedOperationException ⇒ Resume
@@ -42,7 +42,7 @@ class DirectoryActor extends Actor with ActorLogging with Configured {
       case _: ActorKilledException ⇒ Stop
       case _: Exception ⇒ Escalate
     }
-*/
+
 
   override def preStart() {
     super.preStart
@@ -143,14 +143,19 @@ class DirectoryActor extends Actor with ActorLogging with Configured {
       context.stop(imageActor)
 
     case msg @ "failure" =>
+      import Console._
       log.info(s"""
           received message: ${msg}.
+          Triggering a ${RED}failure${RESET}
       """)
       throw new UnsupportedOperationException()
 
     case msg @ "error" =>
+      import Console._
       log.info(s"""
           received message: ${msg}.
+          Triggering an ${RED}error{RESET}
+          Sending ${RED}akka.actor.kill${RESET}
       """)
       self ! akka.actor.Kill
   }

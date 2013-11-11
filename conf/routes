@@ -6,23 +6,29 @@
 
 GET    /                controllers.Application.index
 
+# get configuration as Json
 GET    /conf            controllers.Application.conf
 
+#server alive? (as Json)
 GET    /ping            controllers.Application.ping
 
+# request a new image id
 GET    /image           controllers.Application.imageId
 
+# retrieve an image
 GET    /image/:id       controllers.Application.image(id: String)
 
+# DEBUGGING - send a die message as failure or error
 GET    /die/:msg        controllers.Application.die(msg: String)
 
 
 # POST tags as Json body
 POST   /image           controllers.Application.saveMetaData
 
+# open websocket for status information
 GET    /ws              controllers.Application.ws
 
-
+# Map CSS and Javascript files from webjars to /webjars/*
 GET    /webjars/*file   controllers.WebJarAssets.at(file)
 
 # Map static resources from the /public folder to the /assets URL path

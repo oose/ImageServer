@@ -17,6 +17,6 @@ echo -e "\033[1mInvoking servers\033[0m"
 
 $CMD -Dhttp.port=9001 -Dcamel.endpoint="file://tmp/camel/server1?autoCreate=true" -Dimage.dir="/Users/markusklink/Pictures/Export/BobWayne/" -Dpidfile.path="PID9001.pid" &
 $CMD -Dhttp.port=9002 -Dcamel.endpoint="file://tmp/camel/server2?autoCreate=true" -Dimage.dir="/Users/markusklink/Pictures/Export/GetLostFest/" -Dpidfile.path="PID9002.pid" &
-$CMD -Dhttp.port=9003 -Dcamel.endpoint="activemq:evaluations" -Dimage.dir="/Users/markusklink/Pictures/Export/Flowers/" -Dpidfile.path="PID9003.pid" &
+$CMD -Dhttp.port=9003 -Dcamel.endpoint="activemq:evaluations" -Dimage.dir="/Users/markusklink/Pictures/Export/Blumen/" -Dpidfile.path="PID9003.pid" &
 
 echo -e "\033[1mServers running\033[0m"

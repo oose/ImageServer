@@ -3,7 +3,7 @@ package backend
 import akka.actor._
 import akka.camel._
 
-import common.config.Configured
+import oose.play.config.Configured
 import util.AppConfig
 
 /**

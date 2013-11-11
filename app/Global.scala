@@ -6,7 +6,7 @@ import play.api._
 
 import akka.camel._
 
-import common.config.Configuration
+import oose.play.config.Configuration
 import util.AppConfig
 
 object Global extends GlobalSettings with Configuration {
