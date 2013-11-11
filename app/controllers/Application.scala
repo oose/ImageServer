@@ -32,7 +32,6 @@ import backend.DirectoryActor.StatusRequest
 import backend.DirectoryActor.StatusResponse
 import model.Image
 import backend.StatusReportActor
-import common.akka.AkkaUtil.createActor
 import oose.play.config.Configured
 import util.AppConfig
 import util.Implicits.statusReponseJson
@@ -42,14 +41,14 @@ object Application extends Controller with Configured {
   import DirectoryActor._
 
   val appConfig = configured[AppConfig]
-  import common.akka.AkkaUtil._
+ 
   implicit val actorSystem = Akka.system
 
   implicit val timeout = akka.util.Timeout(5.seconds)
 
-  val directoryActor = createActor(DirectoryActor.props, DirectoryActor.name)
+  val directoryActor = actorSystem.actorOf(DirectoryActor.props, DirectoryActor.name)
 
-  val statusReportActor = createActor(StatusReportActor.props(directoryActor), "StatusReportActor")
+  val statusReportActor = actorSystem.actorOf(StatusReportActor.props(directoryActor), "StatusReportActor")
 
   /**
    * compute the next year for use in EXPIRES cache settings
