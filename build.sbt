@@ -11,6 +11,7 @@ scalaVersion := "2.10.2"
 resolvers += "oose (snapshots)" at "http://oose.github.io/m2/snapshots"
 
 libraryDependencies ++=  Seq(
+	cache,
     "commons-io" % "commons-io" % "2.4",
     "com.typesafe.akka" %% "akka-camel" % "2.2.0",
     "org.apache.activemq" % "activemq-camel" % "5.8.0",

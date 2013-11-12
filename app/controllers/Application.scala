@@ -3,12 +3,9 @@ package controllers
 import java.io.File
 import java.util.Calendar
 import java.util.GregorianCalendar
-
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
-
 import org.apache.http.impl.cookie.DateUtils
-
 import play.api._
 import play.api.Play.current
 import play.api.libs.concurrent.Akka
@@ -17,11 +14,9 @@ import play.api.libs.json.JsValue
 import play.api.libs.json.Json
 import play.api.libs.json.Json.toJson
 import play.api.mvc._
-
 import akka.actor._
 import akka.actor.actorRef2Scala
 import akka.pattern.ask
-
 import backend.DirectoryActor
 import backend.DirectoryActor.Evaluation
 import backend.DirectoryActor.EvaluationAccepted
@@ -35,13 +30,14 @@ import backend.StatusReportActor
 import oose.play.config.Configured
 import util.AppConfig
 import util.Implicits.statusReponseJson
+import play.api.cache.Cached
 
 object Application extends Controller with Configured {
 
   import DirectoryActor._
 
   val appConfig = configured[AppConfig]
- 
+
   implicit val actorSystem = Akka.system
 
   implicit val timeout = akka.util.Timeout(5.seconds)
@@ -135,20 +131,22 @@ object Application extends Controller with Configured {
    *  Send the specified file to the browser.
    *  @param id the file (without directory path)
    */
-  def image(id: String) = Action {
-    request =>
-      Logger.info(s"""
+  def image(id: String) = Cached(id) {
+    Action {
+      request =>
+        Logger.info(s"""
           requested image for ${id}
           """)
-      appConfig.imageDir match { 
-        case Some(dir) =>
-          val file = new File(dir + "/" + id)
-          file.exists() match {
-            case true => Ok.sendFile(content = file, inline = true).withHeaders((EXPIRES -> nextYear))
-            case false => BadRequest
-          }
-        case None => BadRequest
-      }
+        appConfig.imageDir match {
+          case Some(dir) =>
+            val file = new File(dir + "/" + id)
+            file.exists() match {
+              case true => Ok.sendFile(content = file, inline = true)
+              case false => BadRequest
+            }
+          case None => BadRequest
+        }
+    }
   }
 
   /**
