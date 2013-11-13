@@ -1,28 +1,20 @@
 package backend
 
-import org.junit.runner.RunWith
+import scala.concurrent.duration.DurationInt
+
 import org.specs2.mutable._
-import org.specs2.runner.JUnitRunner
 import org.specs2.time.NoTimeConversions
+
 import akka.actor._
-import akka.testkit.ImplicitSender
-import akka.testkit.TestKit
-import oose.play.config.Configuration
-import util.ConfigTrait
-import scala.concurrent.duration._
+import akka.testkit._
+
+import DirectoryActor.RequestImage
+import DirectoryActor.StatusRequest
+import DirectoryActor.StatusResponse
 import model.Image
-
-/**
- *  A tiny class that can be used as a Specs2 'context'.
- */
-abstract class AkkaTestkitSpecs2Support extends TestKit(ActorSystem())
-  with After
-  with ImplicitSender {
-  
-  // make sure we shut down the actor system after all tests have run
-  def after = system.shutdown()
-}
-
+import oose.play.config.Configuration
+import oose.play.akka.test.AkkaSpecs2Scope
+import util.ConfigTrait
 
 class DirectoryActorSpec extends SpecificationWithJUnit with NoTimeConversions with Configuration {
 
@@ -43,20 +35,20 @@ class DirectoryActorSpec extends SpecificationWithJUnit with NoTimeConversions w
 
   "DirectoryActor" should {
     import DirectoryActor._
-    "respond to an image request" in new AkkaTestkitSpecs2Support {
+    "respond to an image request" in new AkkaSpecs2Scope {
 
       val directoryActor = system.actorOf(Props[DirectoryActor])
       directoryActor ! RequestImage
       expectMsg(Some(Image("I1")))
     }
 
-    "respond to a StatusRequest" in new AkkaTestkitSpecs2Support {
+    "respond to a StatusRequest" in new AkkaSpecs2Scope {
       val directoryActor = system.actorOf(Props[DirectoryActor])
       directoryActor ! StatusRequest
       expectMsg(StatusResponse(3, 3, 0, 0, imageList))
     }
 
-    "respond with None if repeatedly asked for an image" in new AkkaTestkitSpecs2Support {
+    "respond with None if repeatedly asked for an image" in new AkkaSpecs2Scope {
       val directoryActor = system.actorOf(Props[DirectoryActor])
       directoryActor ! RequestImage
       fishForMessage(5.seconds, "Trying to request images") {
