@@ -17,7 +17,7 @@ echo -e "\033[1mDeleting tag directories\033[0m"
 rm -rf ./tmp/camel/*
 
 echo -e "\033[1mStaging application\033[0m"
-play stage
+sbt stage
 
 echo -e "\033[1mInvoking servers\033[0m"
 
