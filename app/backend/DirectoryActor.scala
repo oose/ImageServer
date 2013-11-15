@@ -3,14 +3,11 @@ package backend
 import java.io.File
 import java.io.FileNotFoundException
 
-import scala.collection.Map
+import scala.collection._
 import scala.concurrent.duration._
 
 import akka.actor._
-import akka.actor.SupervisorStrategy.Escalate
-import akka.actor.SupervisorStrategy.Restart
-import akka.actor.SupervisorStrategy.Resume
-import akka.actor.SupervisorStrategy.Stop
+import akka.actor.SupervisorStrategy._
 import akka.event.LogSource
 import akka.event.LoggingReceive
 
@@ -33,8 +30,12 @@ class DirectoryActor extends Actor with ActorLogging with Configured {
   private[this] var imageActors: Map[Image, ActorRef] = Map.empty
 
   var images = appConfig.images
-
   
+//  val imageMap : mutable.Map[Image, (Image, ActorRef)]  = {
+//    val result = images.map(i => (i -> (i,context.actorOf(ImageActor.props(i), ImageActor.name(i))))).toMap
+//    mutable.Map[Image, (Image, ActorRef)](result.toSeq: _*)
+//  }
+
   override val supervisorStrategy =
     OneForOneStrategy(maxNrOfRetries = 10, withinTimeRange = 1 minute) {
       case _: UnsupportedOperationException ⇒ Resume
@@ -42,7 +43,6 @@ class DirectoryActor extends Actor with ActorLogging with Configured {
       case _: ActorKilledException ⇒ Stop
       case _: Exception ⇒ Escalate
     }
-
 
   override def preStart() {
     super.preStart
@@ -61,25 +61,26 @@ class DirectoryActor extends Actor with ActorLogging with Configured {
   private def findPairForImage(imageId: String): Option[(Image, ActorRef)] = {
     imageActors.find { case (img, actor) => img.id == imageId }
   }
+  
+  private def findPairForActorRef(imageActor: ActorRef): Option[(Image, ActorRef)] = {
+    imageActors.find { case (img, actor) => actor == imageActor }
+  }
 
-  def receive : Receive = LoggingReceive {
+  def receive: Receive = LoggingReceive {
 
     case RequestImage =>
-      images.nextImage() match {
-        // found an image to process
-        case Some(image) =>
+      images.nextImage().map { image => 
           // create a new ImageActor - it will ping itself after a timeout,
           // e.g. when no evaluation happened
           val (newImage, newImageList) = images.changeState(image, InEvaluation)
           images = newImageList
           val imageActor: ActorRef = context.actorOf(ImageActor.props(image), ImageActor.name(image))
+          context.watch(imageActor)
           imageActors = imageActors + (newImage -> imageActor)
 
           sender ! Some(newImage)
-        
-        // we could not find an image to process
-        case None =>
-          log.debug("Nada: no image available")
+      }.getOrElse {
+        log.debug("Nada: no image available")
           sender ! None
       }
 
@@ -87,21 +88,20 @@ class DirectoryActor extends Actor with ActorLogging with Configured {
       sender ! images.computeStats()
 
     case ExpiredImageEvaluation(image) =>
-      log.info(s"""
-    		  Image $image expired, removing image from queue
-    		  
-      """)
-      log.info(s"""
-    		  ImageActors before : ${imageActors.size}
-      """)
-      imageActors = imageActors - image
-      log.info(s"""
-    		  ImageActors after : ${imageActors.size}
-      """)
-      val (newImage, img) = images.changeState(image, UnEvaluated)
-      images = img
-      val originalSender = sender
-      context.stop(originalSender)
+      context.stop(sender)
+      
+    case Terminated(deadActor) =>
+      findPairForActorRef(deadActor).map {
+        case (image, actorRef) =>
+          log.info(s"""$image died
+              
+          """)
+          imageActors = imageActors - image
+          val (newImage, imageList) = images.changeState(image, UnEvaluated)
+          images = imageList
+      }
+      
+      
 
     case eval: Evaluation =>
       val imageName = new File(eval.id).getName()
@@ -110,22 +110,22 @@ class DirectoryActor extends Actor with ActorLogging with Configured {
           
           """)
 
-      findPairForImage(imageName) match {
-        // we found the image in the queue
-        case Some((image, imageActor)) =>
+      findPairForImage(imageName)
+        .map { case (image, imageActor) =>
           // forward the evaluation to the ServerActor
           log.info(s"""forwarding evaluation to ${imageActor}
           			corresponding image: ${image}
           			evaluation: ${eval}
-          			""")
+          			
+          """)
           val (newImage, newImages) = images.changeState(image.copy(tags = Some(eval.tags)), Evaluated)
           images = newImages
           log.info(s"""
               new image in list: ${newImage}
           """)
           imageActor forward eval
-
-        case None =>
+        }
+        .getOrElse {
           log.info(s"""
               Evaluating image ${eval.id} has expired.
               
@@ -133,7 +133,7 @@ class DirectoryActor extends Actor with ActorLogging with Configured {
           sender ! EvaluationRejected(s"Image ${eval.id} has expired")
           val (newImage, img) = images.changeState(Image(eval.id, UnEvaluated), UnEvaluated)
           images = img
-      }
+        }
 
     case SuccessfulImageEvaluation(image) =>
       val (newImage, newImages) = images.changeState(image, Evaluated)

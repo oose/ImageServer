@@ -1,36 +1,28 @@
 package controllers
 
 import java.io.File
-import java.util.Calendar
-import java.util.GregorianCalendar
+
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
-import org.apache.http.impl.cookie.DateUtils
+
 import play.api._
 import play.api.Play.current
+import play.api.cache.Cached
 import play.api.libs.concurrent.Akka
 import play.api.libs.concurrent.Execution.Implicits.defaultContext
-import play.api.libs.json.JsValue
-import play.api.libs.json.Json
+import play.api.libs.json._
 import play.api.libs.json.Json.toJson
 import play.api.mvc._
-import akka.actor._
+
 import akka.actor.actorRef2Scala
 import akka.pattern.ask
+
 import backend.DirectoryActor
-import backend.DirectoryActor.Evaluation
-import backend.DirectoryActor.EvaluationAccepted
-import backend.DirectoryActor.EvaluationRejected
-import backend.DirectoryActor.EvaluationStatus
-import backend.DirectoryActor.RequestImage
-import backend.DirectoryActor.StatusRequest
-import backend.DirectoryActor.StatusResponse
-import model.Image
 import backend.StatusReportActor
+import model.Image
 import oose.play.config.Configured
-import util.AppConfig
-import util.Implicits.statusReponseJson
-import play.api.cache.Cached
+import _root_.util.AppConfig
+import _root_.util.Implicits.statusReponseJson
 
 object Application extends Controller with Configured {
 
@@ -45,15 +37,6 @@ object Application extends Controller with Configured {
   val directoryActor = actorSystem.actorOf(DirectoryActor.props, DirectoryActor.name)
 
   val statusReportActor = actorSystem.actorOf(StatusReportActor.props(directoryActor), "StatusReportActor")
-
-  /**
-   * compute the next year for use in EXPIRES cache settings
-   */
-  private def nextYear() = {
-    val calendar = new GregorianCalendar();
-    calendar.add(Calendar.YEAR, 1);
-    DateUtils.formatDate(calendar.getTime());
-  }
 
   /**
    * compute the imagepath on this host for a given request and image id.
@@ -102,9 +85,7 @@ object Application extends Controller with Configured {
     request =>
       val statusReponse = (directoryActor ? StatusRequest).mapTo[StatusResponse]
 
-      statusReponse.map { sr =>
-        Ok(toJson(sr))
-      }
+      statusReponse.map { sr => Ok(toJson(sr)) }
   }
 
   /**
@@ -137,15 +118,15 @@ object Application extends Controller with Configured {
         Logger.info(s"""
           requested image for ${id}
           """)
-        appConfig.imageDir match {
-          case Some(dir) =>
+        appConfig.imageDir
+          .map { dir =>
             val file = new File(dir + "/" + id)
             file.exists() match {
               case true => Ok.sendFile(content = file, inline = true)
               case false => BadRequest
             }
-          case None => BadRequest
-        }
+          }
+          .getOrElse(BadRequest)
     }
   }
 
@@ -166,17 +147,17 @@ object Application extends Controller with Configured {
           json : ${Json.prettyPrint(request.body)}
           
       """)
-      (body \ "tags").asOpt[List[String]] match {
-        case Some(tags) =>
+      (body \ "tags").asOpt[List[String]]
+        .map { tags =>
           val response = (directoryActor ? Evaluation(id, tags)).mapTo[EvaluationStatus]
           response.map(r =>
             r match {
               case EvaluationAccepted => Ok(s"Evaluation accepted")
               case EvaluationRejected(reason) => BadRequest(reason)
             })
+        }
+        .getOrElse(Future { BadRequest("value for tags not specified in body") })
 
-        case None => Future { BadRequest("value for tags not specified in body") }
-      }
   }
 
   def die(msg: String) = Action {
