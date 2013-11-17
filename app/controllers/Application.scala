@@ -21,6 +21,7 @@ import backend.DirectoryActor
 import backend.StatusReportActor
 import model.Image
 import oose.play.config.Configured
+import oose.play.json.StatusMessage._
 import _root_.util.AppConfig
 import _root_.util.Implicits.statusReponseJson
 
@@ -61,7 +62,7 @@ object Application extends Controller with Configured {
    */
   def ping = Action {
     request =>
-      Ok(toJson(Map("success" -> s"server ${request.host} is alive")))
+      Ok(success( s"server ${request.host} is alive"))
   }
 
   /**
@@ -99,11 +100,12 @@ object Application extends Controller with Configured {
    */
   def imageId = Action.async {
     request =>
+      import oose.play.json.StatusMessage._
       val response = (directoryActor ? RequestImage).mapTo[Option[Image]]
       response.map(
         _ match {
           case Some(image) => Ok(toJson(Map("id" -> imagePath(request, image.id))))
-          case None => BadRequest(toJson(Map("error" -> s"No more files available on ${request.host} ")))
+          case None => BadRequest(error(s"No more files available on ${request.host} "))
         })
   }
 
@@ -123,10 +125,10 @@ object Application extends Controller with Configured {
             val file = new File(dir + "/" + id)
             file.exists() match {
               case true => Ok.sendFile(content = file, inline = true)
-              case false => BadRequest
+              case false => BadRequest(error(s"File '$id' does not exist."))
             }
           }
-          .getOrElse(BadRequest)
+          .getOrElse(BadRequest(error("Configuraton error: imageDir not set.")))
     }
   }
 
@@ -152,11 +154,11 @@ object Application extends Controller with Configured {
           val response = (directoryActor ? Evaluation(id, tags)).mapTo[EvaluationStatus]
           response.map(r =>
             r match {
-              case EvaluationAccepted => Ok(s"Evaluation accepted")
-              case EvaluationRejected(reason) => BadRequest(reason)
+              case EvaluationAccepted => Ok(success("Evaluation accepted").toJson)
+              case EvaluationRejected(reason) => BadRequest(error(reason).toJson)
             })
         }
-        .getOrElse(Future { BadRequest("value for tags not specified in body") })
+        .getOrElse(Future { BadRequest(error("value for tags not specified in body")) })
 
   }
 

@@ -20,6 +20,7 @@ libraryDependencies ++=  Seq(
     "org.webjars" % "bootstrap" % "2.3.2",
     "oose.play" %% "config" % "1.0-SNAPSHOT",
     "oose.play" %% "jsrouter" % "1.0-SNAPSHOT",
+    "oose.play" %% "actions" % "1.0-SNAPSHOT",
     "oose.play" %% "akka" % "1.0-SNAPSHOT" % "test",
     "com.typesafe.akka" %% "akka-testkit" % "2.2.0" % "test",    
     "org.specs2" % "classycle" % "1.4.1" % "test")
